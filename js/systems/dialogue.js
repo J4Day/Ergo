@@ -34,19 +34,27 @@ class DialogueSystem {
         if (this.waitingForChoice) {
             if (game.input.dirUp || game.input.dirLeft) {
                 this.selectedChoice = Math.max(0, this.selectedChoice - 1);
-                game.audio.playConfirm();
+                game.audio.playSelect();
             }
             if (game.input.dirDown || game.input.dirRight) {
                 this.selectedChoice = Math.min(this.choice.options.length - 1, this.selectedChoice + 1);
-                game.audio.playConfirm();
+                game.audio.playSelect();
             }
             if (game.input.confirm) {
                 const option = this.choice.options[this.selectedChoice];
                 if (option.flag) {
                     game.state.setFlag(option.flag, option.value);
+                    // Play appropriate memory sound
+                    if (option.value === true) {
+                        game.audio.playMemoryAccept();
+                        game.effects.flash(0.4, '#fff');
+                    } else {
+                        game.audio.playMemoryReject();
+                        game.effects.flash(0.4, '#200000');
+                        game.camera.shake(2, 0.3);
+                    }
                 }
                 this.close(game);
-                game.audio.playConfirm();
             }
             return;
         }

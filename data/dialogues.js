@@ -237,10 +237,28 @@ const DIALOGUES = {
         ]
     },
 
-    // Shadow encounter
+    // Shadow encounters
     shadowChase: {
         lines: [
             { text: "*Холод. Она здесь.*", speaker: 'mila' }
+        ]
+    },
+    shadowCatch: {
+        lines: [
+            { text: "*Темнота обволакивает... Не могу дышать...*", speaker: 'mila' },
+            { text: "Ты думала, можно убежать от себя?", speaker: 'shadow' },
+            { text: "*Боль отступает. Но страх остаётся.*", speaker: 'mila' }
+        ]
+    },
+    shadowStalking: {
+        lines: [
+            { text: "*За спиной... что-то шевелится.*", speaker: 'mila' },
+            { text: "*Не оборачивайся. Не оборачивайся.*", speaker: 'mila' }
+        ]
+    },
+    shadowWhisperText: {
+        lines: [
+            { text: "...тебе не станет лучше...", speaker: 'shadow' }
         ]
     },
 

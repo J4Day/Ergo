@@ -11,7 +11,8 @@ class HospitalRoom extends Room {
                 { name: 'vignette', params: { strength: 0.5 } },
                 { name: 'breathe', params: { speed: 0.8, amount: 1.5 } },
                 { name: 'chromatic', params: { offset: 2 } },
-                { name: 'noise', params: { intensity: 0.05 } }
+                { name: 'noise', params: { intensity: 0.05 } },
+                { name: 'pulse', params: { speed: 0.7, amount: 0.06 } }
             ]
         });
     }
@@ -161,8 +162,8 @@ class HospitalRoom extends Room {
         // Shadow in hospital
         setTimeout(() => {
             if (game.currentRoom === this && game.shadow) {
+                game.shadow.baseSpeed = 1.3;
                 game.shadow.activate(10, 1);
-                game.shadow.speed = 1.5;
             }
         }, 8000);
     }

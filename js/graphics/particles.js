@@ -83,5 +83,47 @@ const ParticlePresets = {
             spread: 2, speed: 0.5, life: 1, size: 1,
             colors: ['#3d7cc9', '#5ba3e6'], gravity: 0.3, fadeOut: true
         });
+    },
+    firefly(ps, x, y) {
+        ps.emit(x, y, 1, {
+            spread: 200, speed: 0.15, life: 4, size: 1,
+            colors: ['#ffee88', '#ffcc44', '#ffaa22'], gravity: -0.02, fadeOut: true
+        });
+    },
+    snowfall(ps, x, y) {
+        ps.emit(x + Math.random() * 256, -2, 1, {
+            spread: 4, speed: 0.2, life: 5, size: 1,
+            colors: ['#ffffff', '#ddddee', '#ccccdd'], gravity: 0.08, fadeOut: false
+        });
+    },
+    embers(ps, x, y) {
+        ps.emit(x, y, 1, {
+            spread: 30, speed: 0.4, life: 2, size: 1,
+            colors: ['#ff4400', '#ff6600', '#ffaa00', '#ff2200'], gravity: -0.15, fadeOut: true
+        });
+    },
+    static(ps, x, y) {
+        ps.emit(x, y, 3, {
+            spread: 256, speed: 0, life: 0.1, size: 1,
+            colors: ['#fff', '#888', '#444'], gravity: 0, fadeOut: false
+        });
+    },
+    tears(ps, x, y) {
+        ps.emit(x, y, 1, {
+            spread: 4, speed: 0.1, life: 1.5, size: 1,
+            colors: ['#88bbff', '#6699dd'], gravity: 0.4, fadeOut: true
+        });
+    },
+    shadowCorruption(ps, x, y) {
+        ps.emit(x, y, 30, {
+            spread: 32, speed: 2.5, life: 1.2, size: 2,
+            colors: ['#1a0020', '#330040', '#ff0040', '#000', '#200010'], gravity: 0.2, fadeOut: true
+        });
+    },
+    shadowTrail(ps, x, y) {
+        ps.emit(x, y, 2, {
+            spread: 8, speed: 0.15, life: 2, size: 1,
+            colors: ['#1a0020', '#0a0010', '#200030'], gravity: -0.03, fadeOut: true
+        });
     }
 };

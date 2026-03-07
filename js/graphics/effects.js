@@ -46,6 +46,11 @@ class Effects {
         if (this.active.chromatic) this.applyChromatic(ctx, w, h);
         if (this.active.hueShift) this.applyHueShift(ctx, w, h);
 
+        if (this.active.rain) this.applyRain(ctx, w, h);
+        if (this.active.eyes) this.applyEyes(ctx, w, h);
+        if (this.active.pulse) this.applyScreenPulse(ctx, w, h);
+        if (this.active.fog) this.applyFog(ctx, w, h);
+
         if (this.timers.flash) {
             const t = this.timers.flash;
             const alpha = t.remaining / t.duration;
@@ -53,6 +58,62 @@ class Effects {
             ctx.fillStyle = t.color;
             ctx.fillRect(0, 0, w, h);
             ctx.globalAlpha = 1;
+        }
+    }
+
+    applyRain(ctx, w, h) {
+        const intensity = this.active.rain.intensity || 0.3;
+        ctx.strokeStyle = `rgba(100,140,200,${intensity})`;
+        ctx.lineWidth = 1;
+        const count = Math.floor(30 * intensity);
+        for (let i = 0; i < count; i++) {
+            const x = (i * 37 + this.time * 120) % w;
+            const y = (i * 53 + this.time * 250) % h;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 1, y + 4);
+            ctx.stroke();
+        }
+    }
+
+    applyEyes(ctx, w, h) {
+        // Random blinking eyes in darkness
+        const t = Math.floor(this.time * 2);
+        if (t % 7 < 2) return; // blink off
+        const count = this.active.eyes.count || 3;
+        for (let i = 0; i < count; i++) {
+            const seed = i * 1337;
+            const ex = ((seed * 7 + 31) % (w - 20)) + 10;
+            const ey = ((seed * 13 + 47) % (h - 40)) + 10;
+            const blink = Math.sin(this.time * (1 + i * 0.3)) > 0.3;
+            if (blink) {
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillRect(ex, ey, 2, 1);
+                ctx.fillRect(ex + 5, ey, 2, 1);
+            }
+        }
+    }
+
+    applyScreenPulse(ctx, w, h) {
+        const speed = this.active.pulse.speed || 1;
+        const amount = this.active.pulse.amount || 0.1;
+        const pulse = (Math.sin(this.time * speed * Math.PI * 2) + 1) * 0.5 * amount;
+        ctx.fillStyle = `rgba(0,0,0,${pulse})`;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    applyFog(ctx, w, h) {
+        const density = this.active.fog.density || 0.15;
+        const color = this.active.fog.color || '150,150,150';
+        for (let i = 0; i < 5; i++) {
+            const x = ((i * 73 + this.time * 8) % (w + 40)) - 20;
+            const y = h * 0.3 + Math.sin(this.time * 0.5 + i) * 20;
+            const r = 30 + i * 10;
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+            grad.addColorStop(0, `rgba(${color},${density})`);
+            grad.addColorStop(1, `rgba(${color},0)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x - r, y - r, r * 2, r * 2);
         }
     }
 

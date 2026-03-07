@@ -10,10 +10,12 @@ class ApartmentRoom extends Room {
             effects: [
                 { name: 'vignette', params: { strength: 0.6 } },
                 { name: 'chromatic', params: { offset: 1 } },
-                { name: 'noise', params: { intensity: 0.03 } }
+                { name: 'noise', params: { intensity: 0.03 } },
+                { name: 'rain', params: { intensity: 0.15 } }
             ],
             ambientParticle: (ps, g) => {
                 ParticlePresets.waterDrip(ps, Math.random() * 14 * 16, 0);
+                if (Math.random() < 0.3) ParticlePresets.static(ps, Math.random() * 14 * 16, Math.random() * 10 * 16);
             }
         });
     }
@@ -92,6 +94,7 @@ class ApartmentRoom extends Room {
                     g.inventory.add(ITEMS.photoFragment1);
                     this.tilemap.setTile('objects', 2, 3, 0);
                     g.dialogue.show({ lines: [{ text: '*Фрагмент фотографии. Угол... рука ребёнка.*', speaker: 'mila' }] }, g);
+                    g.audio.playItemPickup();
                     this.checkPhotoComplete(g);
                 }
             }
@@ -102,6 +105,7 @@ class ApartmentRoom extends Room {
                     g.inventory.add(ITEMS.photoFragment2);
                     this.tilemap.setTile('objects', 11, 5, 0);
                     g.dialogue.show({ lines: [{ text: '*Ещё один фрагмент. Женский силуэт.*', speaker: 'mila' }] }, g);
+                    g.audio.playItemPickup();
                     this.checkPhotoComplete(g);
                 }
             }
@@ -110,6 +114,7 @@ class ApartmentRoom extends Room {
             onInteract: (g) => {
                 if (!g.inventory.has('photoFragment3')) {
                     g.inventory.add(ITEMS.photoFragment3);
+                    g.audio.playItemPickup();
                     this.tilemap.setTile('objects', 5, 6, 0);
                     g.dialogue.show({ lines: [{ text: '*Последний фрагмент? На нём - улыбка.*', speaker: 'mila' }] }, g);
                     this.checkPhotoComplete(g);
@@ -145,8 +150,8 @@ class ApartmentRoom extends Room {
         // Activate shadow after a delay
         setTimeout(() => {
             if (game.currentRoom === this && game.shadow) {
+                game.shadow.baseSpeed = 1.8;
                 game.shadow.activate(1, 1);
-                game.shadow.speed = 2.0;
             }
         }, 10000);
     }

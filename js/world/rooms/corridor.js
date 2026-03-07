@@ -63,6 +63,7 @@ class CorridorRoom extends Room {
                             return;
                         }
                     }
+                    g.audio.playDoorOpen();
                     g.changeRoom(door.room);
                 }
             }));

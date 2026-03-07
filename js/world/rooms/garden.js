@@ -9,10 +9,12 @@ class GardenRoom extends Room {
             playerStart: { x: 8, y: 10 },
             effects: [
                 { name: 'vignette', params: { strength: 0.4 } },
-                { name: 'hueShift', params: { amount: 10 } }
+                { name: 'hueShift', params: { amount: 10 } },
+                { name: 'pulse', params: { speed: 0.3, amount: 0.08 } }
             ],
             ambientParticle: (ps, g) => {
                 ParticlePresets.ash(ps, Math.random() * 16 * 16, 0);
+                if (Math.random() < 0.15) ParticlePresets.embers(ps, Math.random() * 16 * 16, 12 * 16);
             }
         });
     }
@@ -134,8 +136,8 @@ class GardenRoom extends Room {
         // Shadow
         setTimeout(() => {
             if (game.currentRoom === this && game.shadow) {
+                game.shadow.baseSpeed = 2.0;
                 game.shadow.activate(14, 1);
-                game.shadow.speed = 2.2;
             }
         }, 15000);
     }

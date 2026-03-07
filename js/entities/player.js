@@ -12,6 +12,7 @@ class Player extends Entity {
         this.walkTimer = 0;
         this.solid = true;
         this.interacting = false;
+        this.corruptionSlow = false; // set by shadow when on corruption tile
     }
 
     init(sprites) {
@@ -26,7 +27,10 @@ class Player extends Entity {
 
         if (this.moving) {
             this.moveTimer += dt;
-            const t = Math.min(this.moveTimer / (CONFIG.PLAYER_MOVE_TIME / 1000), 1);
+            const moveTime = this.corruptionSlow
+                ? (CONFIG.PLAYER_MOVE_TIME / 1000) * 1.8
+                : (CONFIG.PLAYER_MOVE_TIME / 1000);
+            const t = Math.min(this.moveTimer / moveTime, 1);
             // Smooth interpolation
             const ease = t * t * (3 - 2 * t);
             this.drawX = this.startX + (this.targetTileX * CONFIG.TILE_SIZE - this.startX) * ease;

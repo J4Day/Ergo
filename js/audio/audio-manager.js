@@ -6,7 +6,11 @@ class AudioManager {
         this.activeDrone = null;
         this.activePulse = null;
         this.masterGain = null;
+        this.musicGain = null;
         this.muted = false;
+        this.currentOST = null;
+        this.ostTimer = null;
+        this.ostLoopDuration = 0;
     }
 
     init() {
@@ -16,6 +20,10 @@ class AudioManager {
         this.masterGain = this.ctx.createGain();
         this.masterGain.connect(this.ctx.destination);
         this.masterGain.gain.value = 0.7;
+
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.connect(this.masterGain);
+        this.musicGain.gain.value = 0.8;
         this.initialized = true;
     }
 
@@ -24,6 +32,8 @@ class AudioManager {
             this.ctx.resume();
         }
     }
+
+    // === Drone layer ===
 
     startDrone(freq, volume) {
         if (!this.initialized) return;
@@ -37,6 +47,7 @@ class AudioManager {
         if (this.activeDrone) {
             try {
                 this.activeDrone.osc.stop();
+                this.activeDrone.osc2.stop();
                 this.activeDrone.lfo.stop();
             } catch (e) {}
             this.activeDrone = null;
@@ -59,9 +70,44 @@ class AudioManager {
         }
     }
 
+    // === OST music system ===
+
+    playOST(trackName) {
+        if (!this.initialized) return;
+        this.stopOST();
+        this.currentOST = trackName;
+
+        const playTrack = () => {
+            if (this.currentOST !== trackName) return;
+            let duration = 16;
+            switch (trackName) {
+                case 'whiteSilence': duration = this.soundGen.playOST_WhiteSilence(this.musicGain); break;
+                case 'corridors': duration = this.soundGen.playOST_Corridors(this.musicGain); break;
+                case 'submerged': duration = this.soundGen.playOST_Submerged(this.musicGain); break;
+                case 'echoes': duration = this.soundGen.playOST_Echoes(this.musicGain); break;
+                case 'lullaby': duration = this.soundGen.playOST_Lullaby(this.musicGain); break;
+                case 'flatline': duration = this.soundGen.playOST_Flatline(this.musicGain); break;
+                case 'void': duration = this.soundGen.playOST_Void(this.musicGain); break;
+                case 'awakening': duration = this.soundGen.playOST_Awakening(this.musicGain); break;
+            }
+            this.ostTimer = setTimeout(playTrack, duration * 1000);
+        };
+        playTrack();
+    }
+
+    stopOST() {
+        this.currentOST = null;
+        if (this.ostTimer) {
+            clearTimeout(this.ostTimer);
+            this.ostTimer = null;
+        }
+    }
+
+    // === SFX shortcuts ===
+
     playFootstep() {
         if (!this.initialized) return;
-        this.soundGen.playFootstep(0.08);
+        this.soundGen.playFootstep(0.06);
     }
 
     playConfirm() {
@@ -69,14 +115,29 @@ class AudioManager {
         this.soundGen.playUIConfirm();
     }
 
+    playSelect() {
+        if (!this.initialized) return;
+        this.soundGen.playUISelect();
+    }
+
+    playItemPickup() {
+        if (!this.initialized) return;
+        this.soundGen.playItemPickup();
+    }
+
+    playDoorOpen() {
+        if (!this.initialized) return;
+        this.soundGen.playDoorOpen();
+    }
+
     playGlitch() {
         if (!this.initialized) return;
         this.soundGen.playGlitchSound();
     }
 
-    playHeartbeat(rate) {
+    playHeartbeat() {
         if (!this.initialized) return;
-        this.soundGen.playHeartbeat(rate);
+        this.soundGen.playHeartbeat();
     }
 
     playDrip() {
@@ -89,6 +150,33 @@ class AudioManager {
         this.soundGen.playLullaby();
     }
 
+    playShadowWhisper() {
+        if (!this.initialized) return;
+        this.soundGen.playShadowWhisper();
+    }
+
+    playMemoryAccept() {
+        if (!this.initialized) return;
+        this.soundGen.playMemoryAccept();
+    }
+
+    playMemoryReject() {
+        if (!this.initialized) return;
+        this.soundGen.playMemoryReject();
+    }
+
+    playShadowScream() {
+        if (!this.initialized) return;
+        this.soundGen.playShadowScream();
+    }
+
+    playCorruptionHum() {
+        if (!this.initialized) return;
+        this.soundGen.playCorruptionHum();
+    }
+
+    // === Room ambience (drone + OST combined) ===
+
     setRoomAmbience(roomName) {
         if (!this.initialized) return;
         this.stopDrone();
@@ -96,27 +184,34 @@ class AudioManager {
 
         switch (roomName) {
             case 'whiteRoom':
-                this.startDrone(40, 0.02);
+                this.startDrone(40, 0.015);
+                this.playOST('whiteSilence');
                 break;
             case 'corridor':
-                this.startDrone(55, 0.03);
-                this.startPulse(60, 50);
+                this.startDrone(55, 0.02);
+                this.startPulse(60, 45);
+                this.playOST('corridors');
                 break;
             case 'apartment':
-                this.startDrone(45, 0.04);
+                this.startDrone(45, 0.025);
+                this.playOST('submerged');
                 break;
             case 'school':
-                this.startDrone(60, 0.03);
+                this.startDrone(60, 0.02);
+                this.playOST('echoes');
                 break;
             case 'garden':
-                this.startDrone(50, 0.03);
+                this.startDrone(50, 0.02);
+                this.playOST('lullaby');
                 break;
             case 'hospital':
-                this.startDrone(65, 0.04);
-                this.startPulse(60, 70);
+                this.startDrone(65, 0.025);
+                this.startPulse(60, 65);
+                this.playOST('flatline');
                 break;
             case 'void':
-                this.startDrone(35, 0.05);
+                this.startDrone(35, 0.03);
+                this.playOST('void');
                 break;
         }
     }

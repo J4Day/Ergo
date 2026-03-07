@@ -10,7 +10,9 @@ class SchoolRoom extends Room {
             effects: [
                 { name: 'vignette', params: { strength: 0.7 } },
                 { name: 'noise', params: { intensity: 0.04 } },
-                { name: 'glitch', params: { intensity: 0.05 } }
+                { name: 'glitch', params: { intensity: 0.05 } },
+                { name: 'eyes', params: { count: 4 } },
+                { name: 'fog', params: { density: 0.08, color: '0,50,0' } }
             ]
         });
     }
@@ -160,8 +162,8 @@ class SchoolRoom extends Room {
         // Shadow appears in school after a bit
         setTimeout(() => {
             if (game.currentRoom === this && game.shadow) {
+                game.shadow.baseSpeed = 1.6;
                 game.shadow.activate(18, 14);
-                game.shadow.speed = 1.8;
             }
         }, 12000);
     }

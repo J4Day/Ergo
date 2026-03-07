@@ -119,6 +119,8 @@ class Game {
                 break;
             case 'dialogue':
                 this.dialogue.update(dt, this);
+                // Shadow jumpscare continues during dialogue
+                if (this.shadow.jumpscareActive) this.shadow.update(dt, this);
                 break;
             case 'transition':
                 // transition already updated above
@@ -183,6 +185,12 @@ class Game {
         this.shadow.update(dt, this);
         this.currentRoom.update(dt, this);
 
+        // Corruption visual feedback
+        if (this.player.corruptionSlow) {
+            this.effects.enable('noise', { intensity: 0.06 });
+            this.effects.enable('chromatic', { offset: 2 });
+        }
+
         // Camera follow
         this.camera.follow(this.player, this.currentRoom.width, this.currentRoom.height);
         this.camera.update(dt);
@@ -234,31 +242,56 @@ class Game {
         const ctx = this.renderer.ictx;
         const w = CONFIG.INTERNAL_WIDTH;
         const h = CONFIG.INTERNAL_HEIGHT;
+        const t = this.titleTimer;
 
         this.renderer.clear('#000');
 
-        // Title with glitch
-        ctx.fillStyle = '#f0f0f0';
+        // Animated background — slow floating particles
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        for (let i = 0; i < 12; i++) {
+            const px = (Math.sin(t * 0.2 + i * 1.7) * 0.5 + 0.5) * w;
+            const py = (Math.cos(t * 0.15 + i * 2.3) * 0.5 + 0.5) * h;
+            ctx.fillRect(px, py, 1, 1);
+        }
+
+        // Title with glitch + breathing scale effect
+        const breathe = Math.sin(t * 0.8) * 0.02;
+        ctx.save();
+        ctx.translate(w / 2, h / 3);
+        ctx.scale(1 + breathe, 1 + breathe);
+
+        // Shadow behind title
+        ctx.fillStyle = 'rgba(255,0,0,0.15)';
+        const glitchOx = Math.random() < 0.04 ? (Math.random() - 0.5) * 8 : 0;
         ctx.font = '24px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.fillText('ERGO', glitchOx + 1, 1);
 
-        const titleX = w / 2 + (Math.random() < 0.03 ? (Math.random() - 0.5) * 8 : 0);
-        ctx.fillText('ERGO', titleX, h / 3);
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillText('ERGO', glitchOx, 0);
+        ctx.restore();
 
-        // Subtitle
-        ctx.fillStyle = '#666';
+        // Subtitle with fade-in
+        const subAlpha = Math.min(1, t * 0.3);
+        ctx.globalAlpha = subAlpha;
+        ctx.fillStyle = '#555';
         ctx.font = '8px monospace';
-        ctx.fillText('ergo // следовательно', w / 2, h / 3 + 20);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('"следовательно"', w / 2, h / 3 + 22);
+        ctx.globalAlpha = 1;
 
-        // Glitch line
-        if (Math.random() < 0.05) {
+        // Glitch lines
+        if (Math.random() < 0.06) {
             const gy = Math.floor(Math.random() * h);
-            ctx.fillStyle = `rgba(255,0,0,0.3)`;
-            ctx.fillRect(0, gy, w, 1);
+            const gw = Math.floor(Math.random() * 60) + 20;
+            const gx = Math.floor(Math.random() * (w - gw));
+            ctx.fillStyle = `rgba(255,${Math.floor(Math.random()*50)},${Math.floor(Math.random()*50)},0.3)`;
+            ctx.fillRect(gx, gy, gw, 1 + Math.floor(Math.random() * 2));
         }
 
-        // Menu options
+        // Menu options with smooth cursor
         const hasSave = this.saveSystem.hasSave();
         const options = ['Новая игра'];
         if (hasSave) {
@@ -266,23 +299,40 @@ class Game {
             options.push('Удалить сохранение');
         }
 
+        const menuFade = Math.min(1, (t - 1) * 0.5);
+        ctx.globalAlpha = Math.max(0, menuFade);
+
         options.forEach((opt, i) => {
             const isSelected = i === this.menuSelection;
-            ctx.fillStyle = isSelected ? '#fff' : '#555';
+            const pulse = isSelected ? Math.sin(t * 3) * 0.15 + 0.85 : 0;
+            ctx.fillStyle = isSelected ? `rgba(255,255,255,${0.85 + pulse * 0.15})` : '#444';
             ctx.font = '8px monospace';
+            ctx.textAlign = 'center';
             const prefix = isSelected ? '> ' : '  ';
-            ctx.fillText(prefix + opt, w / 2, h / 2 + 20 + i * 16);
+            const ox = isSelected ? Math.sin(t * 4) * 1 : 0;
+            ctx.fillText(prefix + opt, w / 2 + ox, h / 2 + 24 + i * 16);
         });
 
+        ctx.globalAlpha = 1;
+
         // Bottom hint
-        ctx.fillStyle = '#333';
-        ctx.fillText('WASD / стрелки - движение  |  Enter/Z - действие  |  M - звук', w / 2, h - 12);
+        ctx.fillStyle = '#222';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('WASD - движение | Enter - действие | M - звук', w / 2, h - 10);
 
         // VHS scanlines
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
         for (let y = 0; y < h; y += 2) {
             ctx.fillRect(0, y, w, 1);
         }
+
+        // Vignette
+        const gradient = ctx.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.7);
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.6)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
     }
 
     renderGame() {
@@ -326,50 +376,102 @@ class Game {
         const ctx = this.renderer.ictx;
         const w = CONFIG.INTERNAL_WIDTH;
         const h = CONFIG.INTERNAL_HEIGHT;
+        const t = this.titleTimer;
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
 
         if (this.endingType === 'A') {
-            // Awakening - white screen with text
-            this.renderer.clear('#f0f0f0');
+            // Awakening — warm white fading in, golden particles
+            const brightness = Math.min(240, 80 + t * 30);
+            const warm = Math.min(20, t * 4);
+            this.renderer.clear(`rgb(${brightness},${brightness - warm * 0.5},${brightness - warm})`);
+
+            // Floating light particles
+            ctx.fillStyle = `rgba(255,220,100,${Math.min(0.4, t * 0.05)})`;
+            for (let i = 0; i < 20; i++) {
+                const px = (Math.sin(t * 0.3 + i * 1.3) * 0.4 + 0.5) * w;
+                const py = (Math.cos(t * 0.2 + i * 0.9) * 0.4 + 0.5) * h;
+                ctx.fillRect(px, py, 2, 2);
+            }
+
+            const textAlpha = Math.min(1, (t - 1) * 0.3);
+            ctx.globalAlpha = textAlpha;
             ctx.fillStyle = '#333';
             ctx.font = '10px monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('Конец A: Пробуждение', w / 2, h / 3);
+            ctx.fillText('Пробуждение', w / 2, h / 3);
+            ctx.font = '8px monospace';
+            ctx.fillStyle = '#555';
+            ctx.fillText('Мила открыла глаза.', w / 2, h / 2);
+            if (t > 3) ctx.fillText('Впервые за долгое время -', w / 2, h / 2 + 14);
+            if (t > 4.5) ctx.fillText('по-настоящему.', w / 2, h / 2 + 28);
+            ctx.globalAlpha = 1;
+
+        } else if (this.endingType === 'B') {
+            // Oblivion — collapsing darkness
+            this.renderer.clear('#000');
+
+            // Shrinking room walls
+            const shrink = Math.min(1, t * 0.08);
+            const boxW = w * (1 - shrink);
+            const boxH = h * (1 - shrink);
+            if (boxW > 2) {
+                ctx.fillStyle = `rgba(30,30,35,${0.5 - shrink * 0.4})`;
+                ctx.fillRect((w - boxW) / 2, (h - boxH) / 2, boxW, boxH);
+            }
+
+            // Single fading pixel
+            const dotAlpha = Math.max(0, 1 - t * 0.1);
+            if (dotAlpha > 0) {
+                ctx.fillStyle = `rgba(255,255,255,${dotAlpha})`;
+                ctx.fillRect(w / 2, h / 2, 1, 1);
+            }
+
+            if (t > 5) {
+                const textAlpha = Math.min(0.5, (t - 5) * 0.1);
+                ctx.globalAlpha = textAlpha;
+                ctx.fillStyle = '#333';
+                ctx.font = '8px monospace';
+                ctx.fillText('Забвение', w / 2, h - 24);
+                ctx.globalAlpha = 1;
+            }
+
+        } else if (this.endingType === 'C') {
+            // Loop — glitching restart
+            this.renderer.clear('#000');
+
+            // Glitch noise
+            if (Math.random() < 0.1) {
+                const gy = Math.floor(Math.random() * h);
+                ctx.fillStyle = `rgba(${Math.random()*100},${Math.random()*100},${Math.random()*100},0.2)`;
+                ctx.fillRect(0, gy, w, 2);
+            }
+
+            const loopAlpha = Math.min(1, t * 0.4);
+            ctx.globalAlpha = loopAlpha;
             ctx.fillStyle = '#666';
             ctx.font = '8px monospace';
-            ctx.fillText('Мила открыла глаза.', w / 2, h / 2);
-            ctx.fillText('Впервые за долгое время - по-настоящему.', w / 2, h / 2 + 14);
-        } else if (this.endingType === 'B') {
-            // Oblivion - black screen
-            this.renderer.clear('#000');
-            // Slowly shrinking white dot
-            const size = Math.max(0, 4 - this.titleTimer * 0.5);
-            if (size > 0) {
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(w / 2 - size / 2, h / 2 - size / 2, size, size);
+            ctx.fillText('Петля', w / 2, h / 3);
+
+            // Repeating text with offset
+            for (let i = 0; i < Math.min(5, Math.floor(t)); i++) {
+                ctx.globalAlpha = 0.08 + i * 0.03;
+                ctx.fillStyle = '#444';
+                const ox = Math.sin(t + i * 2) * 3;
+                ctx.fillText('Снова и снова...', w / 2 + ox, h / 2 + i * 10);
             }
-            ctx.fillStyle = '#444';
-            ctx.font = '8px monospace';
-            ctx.textAlign = 'center';
-            if (this.titleTimer > 3) {
-                ctx.fillText('Конец B: Забвение', w / 2, h - 20);
-            }
-        } else if (this.endingType === 'C') {
-            // Loop
-            this.renderer.clear('#000');
-            ctx.fillStyle = '#888';
-            ctx.font = '8px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('Конец C: Петля', w / 2, h / 3);
-            ctx.fillStyle = '#555';
-            ctx.fillText('Снова и снова...', w / 2, h / 2);
+            ctx.globalAlpha = 1;
         }
 
-        // Press key hint
-        ctx.fillStyle = '#444';
-        ctx.font = '8px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('Нажми Enter', w / 2, h - 8);
+        // Press key hint (delayed)
+        if (t > 3) {
+            const hintAlpha = Math.min(0.6, (t - 3) * 0.2);
+            ctx.globalAlpha = hintAlpha;
+            ctx.fillStyle = '#555';
+            ctx.font = '8px monospace';
+            ctx.fillText('Enter', w / 2, h - 8);
+            ctx.globalAlpha = 1;
+        }
     }
 }
 

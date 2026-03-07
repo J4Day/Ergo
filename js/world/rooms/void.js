@@ -11,7 +11,9 @@ class VoidRoom extends Room {
                 { name: 'vignette', params: { strength: 0.8 } },
                 { name: 'glitch', params: { intensity: 0.1 } },
                 { name: 'chromatic', params: { offset: 3 } },
-                { name: 'noise', params: { intensity: 0.06 } }
+                { name: 'noise', params: { intensity: 0.06 } },
+                { name: 'pulse', params: { speed: 0.4, amount: 0.12 } },
+                { name: 'eyes', params: { count: 6 } }
             ]
         });
     }
@@ -92,26 +94,36 @@ class VoidRoom extends Room {
     }
 
     endingAwakening(game) {
-        game.effects.flash(1, '#fff');
+        game.effects.flash(1.5, '#fff');
         game.audio.stopDrone();
         game.audio.stopPulse();
+        game.audio.stopOST();
+        game.audio.playOST('awakening');
 
         setTimeout(() => {
             game.dialogue.show(DIALOGUES.endingAwakening, game, () => {
                 game.state.change('ending');
+                game.titleTimer = 0;
                 game.endingType = 'A';
                 game.saveSystem.deleteSave();
             });
-        }, 1000);
+        }, 1500);
     }
 
     endingOblivion(game) {
         game.effects.enable('glitch', { intensity: 0.5 });
         game.audio.playGlitch();
+        game.audio.stopOST();
+
+        setTimeout(() => {
+            game.audio.stopDrone();
+            game.audio.stopPulse();
+        }, 2000);
 
         setTimeout(() => {
             game.dialogue.show(DIALOGUES.endingOblivion, game, () => {
                 game.state.change('ending');
+                game.titleTimer = 0;
                 game.endingType = 'B';
                 game.saveSystem.deleteSave();
             });
@@ -119,19 +131,29 @@ class VoidRoom extends Room {
     }
 
     endingLoop(game) {
-        game.effects.flash(0.8, '#000');
+        game.effects.flash(1, '#000');
+        game.audio.playGlitch();
+        game.audio.stopOST();
 
         setTimeout(() => {
             game.dialogue.show(DIALOGUES.endingLoop, game, () => {
-                // Restart with loop count
-                game.state.resetFlags();
-                game.inventory.clear();
-                game.rooms = {};
-                game.initRooms();
-                game.changeRoom('whiteRoom');
-                game.state.change('playing');
+                game.state.change('ending');
+                game.titleTimer = 0;
+                game.endingType = 'C';
+
+                // Auto-restart after showing ending screen
+                setTimeout(() => {
+                    game.state.resetFlags();
+                    game.inventory.clear();
+                    game.effects.disableAll();
+                    game.rooms = {};
+                    game.initRooms();
+                    game.endingType = null;
+                    game.changeRoom('whiteRoom');
+                    game.state.change('playing');
+                }, 5000);
             });
-        }, 800);
+        }, 1000);
     }
 
     enter(game) {
