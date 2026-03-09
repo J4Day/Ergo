@@ -25,6 +25,8 @@ class DialogueSystem {
         this.selectedChoice = 0;
         this.waitingForChoice = false;
         this.onComplete = onComplete || null;
+        this._game = game;
+        this._wrappedCache = {}; // clear wrap cache for new dialogue
         game.state.change('dialogue');
     }
 
@@ -48,10 +50,18 @@ class DialogueSystem {
                     if (option.value === true) {
                         game.audio.playMemoryAccept();
                         game.effects.flash(0.4, '#fff');
+                        // Sanity restore
+                        if (game.sanity) game.sanity.onMemoryAccepted();
                     } else {
                         game.audio.playMemoryReject();
                         game.effects.flash(0.4, '#200000');
                         game.camera.shake(2, 0.3);
+                        // Sanity drain - irreversible consequence
+                        if (game.sanity) game.sanity.onMemoryRejected();
+                    }
+                    // Puzzle solved (memory confronted)
+                    if (game.sanity && option.flag.startsWith('memory')) {
+                        game.sanity.onPuzzleSolved();
                     }
                 }
                 this.close(game);
@@ -138,7 +148,11 @@ class DialogueSystem {
 
         if (this.currentLine < this.lines.length) {
             const line = this.lines[this.currentLine];
-            const text = line.text.substring(0, this.displayedChars);
+            let text = line.text.substring(0, this.displayedChars);
+            // UI Glitch: corrupt text if system is active
+            if (this._game && this._game.uiGlitch) {
+                text = this._game.uiGlitch.corruptText(text);
+            }
 
             // Speaker color
             let color = '#fff';
@@ -180,21 +194,27 @@ class DialogueSystem {
     }
 
     drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
-        const words = text.split(' ');
-        let line = '';
-        let ty = y;
-
-        for (const word of words) {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line !== '') {
-                ctx.fillText(line.trim(), x, ty);
-                line = word + ' ';
-                ty += lineHeight;
-            } else {
-                line = testLine;
+        // Cache wrapped lines per text string to avoid measureText every frame
+        if (!this._wrappedCache) this._wrappedCache = {};
+        let lines = this._wrappedCache[text];
+        if (!lines) {
+            const words = text.split(' ');
+            lines = [];
+            let line = '';
+            for (const word of words) {
+                const testLine = line + word + ' ';
+                if (ctx.measureText(testLine).width > maxWidth && line !== '') {
+                    lines.push(line.trim());
+                    line = word + ' ';
+                } else {
+                    line = testLine;
+                }
             }
+            if (line.trim()) lines.push(line.trim());
+            this._wrappedCache[text] = lines;
         }
-        ctx.fillText(line.trim(), x, ty);
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], x, y + i * lineHeight);
+        }
     }
 }

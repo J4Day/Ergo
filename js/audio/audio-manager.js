@@ -49,6 +49,11 @@ class AudioManager {
                 this.activeDrone.osc.stop();
                 this.activeDrone.osc2.stop();
                 this.activeDrone.lfo.stop();
+                this.activeDrone.osc.disconnect();
+                this.activeDrone.osc2.disconnect();
+                this.activeDrone.lfo.disconnect();
+                this.activeDrone.filter.disconnect();
+                this.activeDrone.gain.disconnect();
             } catch (e) {}
             this.activeDrone = null;
         }
@@ -65,7 +70,11 @@ class AudioManager {
     stopPulse() {
         if (this.activePulse) {
             this.activePulse.stop();
-            try { this.activePulse.osc.stop(); } catch (e) {}
+            try {
+                this.activePulse.osc.stop();
+                this.activePulse.osc.disconnect();
+                this.activePulse.gain.disconnect();
+            } catch (e) {}
             this.activePulse = null;
         }
     }
@@ -173,6 +182,80 @@ class AudioManager {
     playCorruptionHum() {
         if (!this.initialized) return;
         this.soundGen.playCorruptionHum();
+    }
+
+    // === SOUND PUZZLE ===
+
+    playSoundPuzzleTone(noteIndex, correct) {
+        if (!this.initialized) return;
+        this.soundGen.playSoundPuzzleTone(noteIndex, correct);
+    }
+
+    playSoundPuzzleGuide(direction) {
+        if (!this.initialized) return;
+        this.soundGen.playSoundPuzzleGuide(direction);
+    }
+
+    playSoundPuzzleComplete() {
+        if (!this.initialized) return;
+        this.soundGen.playSoundPuzzleComplete();
+    }
+
+    playSoundPuzzleError() {
+        if (!this.initialized) return;
+        this.soundGen.playSoundPuzzleError();
+    }
+
+    // === NEW AMBIENT SOUNDS ===
+
+    playWhisper(variant) {
+        if (!this.initialized) return;
+        this.soundGen.playWhisper(variant);
+    }
+
+    playWaterAmbient() {
+        if (!this.initialized) return;
+        this.soundGen.playWaterAmbient();
+    }
+
+    playWindAmbient() {
+        if (!this.initialized) return;
+        this.soundGen.playWindAmbient();
+    }
+
+    playClockTick() {
+        if (!this.initialized) return;
+        this.soundGen.playClockTick();
+    }
+
+    playRadioStatic(withVoice) {
+        if (!this.initialized) return;
+        this.soundGen.playRadioStatic(withVoice);
+    }
+
+    playDoorCreak() {
+        if (!this.initialized) return;
+        this.soundGen.playDoorCreak();
+    }
+
+    playBreathing() {
+        if (!this.initialized) return;
+        this.soundGen.playBreathing();
+    }
+
+    playCrying() {
+        if (!this.initialized) return;
+        this.soundGen.playCrying();
+    }
+
+    playFlatline() {
+        if (!this.initialized) return;
+        this.soundGen.playFlatline();
+    }
+
+    playCutsceneTransition() {
+        if (!this.initialized) return;
+        this.soundGen.playCutsceneTransition();
     }
 
     // === Room ambience (drone + OST combined) ===

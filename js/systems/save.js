@@ -10,7 +10,9 @@ class SaveSystem {
             room: game.currentRoom ? game.currentRoom.name : 'whiteRoom',
             playerX: game.player.tileX,
             playerY: game.player.tileY,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            notes: game.notes ? game.notes.serialize() : [],
+            sanity: game.sanity ? game.sanity.value : 100
         };
         try {
             localStorage.setItem(this.key, JSON.stringify(data));
@@ -41,6 +43,12 @@ class SaveSystem {
             for (const id of data.items) {
                 if (ITEMS[id]) game.inventory.add(ITEMS[id]);
             }
+        }
+        if (data.notes && game.notes) {
+            game.notes.deserialize(data.notes);
+        }
+        if (data.sanity !== undefined && game.sanity) {
+            game.sanity.value = data.sanity;
         }
         game.changeRoom(data.room, data.playerX, data.playerY);
     }

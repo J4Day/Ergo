@@ -13,6 +13,9 @@ class Player extends Entity {
         this.solid = true;
         this.interacting = false;
         this.corruptionSlow = false; // set by shadow when on corruption tile
+        this.totalTilesMoved = 0;
+        this.noCatchRun = true; // for "survivor" achievement
+        this.frozen = false; // flashback/cutscene freeze
     }
 
     init(sprites) {
@@ -21,15 +24,39 @@ class Player extends Entity {
     }
 
     update(dt, game) {
-        if (game.state.is('dialogue') || game.state.is('transition') || game.state.is('cutscene')) {
+        if (game.state.is('dialogue') || game.state.is('transition') || game.state.is('cutscene') || this.frozen) {
             return;
+        }
+
+        // Sprint input
+        const isSprinting = game.input.isDown('ShiftLeft') || game.input.isDown('ShiftRight');
+        if (game.sprint) {
+            if (isSprinting && !game.sprint.sprinting) game.sprint.startSprint();
+            if (!isSprinting && game.sprint.sprinting) game.sprint.stopSprint();
+            game.sprint.update(dt, game);
+        }
+
+        // Breath holding input
+        if (game.breath) {
+            const holdingBreath = game.input.isDown('Space');
+            if (holdingBreath && !game.breath.holding) game.breath.startHolding();
+            if (!holdingBreath && game.breath.holding) game.breath.stopHolding();
+            game.breath.update(dt, game);
         }
 
         if (this.moving) {
             this.moveTimer += dt;
-            const moveTime = this.corruptionSlow
+            let moveTime = this.corruptionSlow
                 ? (CONFIG.PLAYER_MOVE_TIME / 1000) * 1.8
                 : (CONFIG.PLAYER_MOVE_TIME / 1000);
+            // Sprint makes movement faster
+            if (game.sprint && game.sprint.sprinting) {
+                moveTime *= game.sprint.moveTimeMultiplier;
+            }
+            // Holding breath makes movement slower
+            if (game.breath && game.breath.holding) {
+                moveTime *= 1.4;
+            }
             const t = Math.min(this.moveTimer / moveTime, 1);
             // Smooth interpolation
             const ease = t * t * (3 - 2 * t);
@@ -43,6 +70,11 @@ class Player extends Entity {
                 this.drawY = this.tileY * CONFIG.TILE_SIZE;
                 this.moving = false;
 
+                this.totalTilesMoved++;
+                // Track sprint distance
+                if (game.sprint && game.sprint.sprinting && game.meta) {
+                    game.meta.onSprintTile();
+                }
                 // Check triggers at new position
                 if (game.currentRoom) {
                     game.currentRoom.triggers.checkEnter(this.tileX, this.tileY, game);

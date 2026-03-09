@@ -262,6 +262,254 @@ const DIALOGUES = {
         ]
     },
 
+    // Secret Ending D: Forgiveness
+    endingForgiveness: {
+        lines: [
+            { text: "*Тень смотрит на меня. Я смотрю на неё.*", speaker: 'narrator' },
+            { text: "*Мы одинаковые. Мы всегда были одинаковые.*", speaker: 'mila' },
+            { text: "Ты... не боишься?", speaker: 'shadow' },
+            { text: "*Нет. Не больше.*", speaker: 'mila' },
+            { text: "*Я протягиваю руку. Тень отступает.*", speaker: 'narrator' },
+            { text: "Не надо. Ты не знаешь, что я...", speaker: 'shadow' },
+            { text: "Я знаю. Ты — моя боль. Моё одиночество. Мой страх.", speaker: 'mila' },
+            { text: "И я прощаю тебя.", speaker: 'mila' },
+            { text: "*Тень дрожит. Пиксели расплываются.*", speaker: 'narrator' },
+            { text: "*Она не исчезает. Она становится частью меня.*", speaker: 'mila' },
+            { text: "*Мы — одно. Мы всегда были одно.*", speaker: 'mila' },
+            { text: "*Свет. Мамин голос. Писк мониторов.*", speaker: 'narrator' },
+            { text: "*Я открываю глаза. И впервые — не боюсь.*", speaker: 'mila' }
+        ]
+    },
+
+    // Doctor's secret
+    doctorSecret: {
+        lines: [
+            { text: "Ты хочешь знать, кто я?", speaker: 'doctor' },
+            { text: "Посмотри внимательно.", speaker: 'doctor' },
+            { text: "*Его лицо... мерцает. За ним — ничего.*", speaker: 'mila' },
+            { text: "Я — не человек. Я — то, что тебе нужно.", speaker: 'doctor' },
+            { text: "Проекция. Часть твоего разума, которая хочет жить.", speaker: 'doctor' },
+            { text: "Та часть, которая вызвала скорую.", speaker: 'doctor' },
+            { text: "*...после того, как я прыгнула.*", speaker: 'mila' },
+            { text: "Я не могу вести тебя. Только направлять.", speaker: 'doctor' },
+            { text: "Остальное — твой выбор. Он всегда был твоим.", speaker: 'doctor' }
+        ]
+    },
+
+    // Little Mila random appearances
+    littleMilaRandom: {
+        lines: [
+            { text: "*Маленькая девочка в красном. Она машет мне.*", speaker: 'narrator' },
+            { text: "Ты помнишь, как мы играли?", speaker: 'littleMila' },
+            { text: "*Она исчезает прежде, чем я успеваю ответить.*", speaker: 'mila' }
+        ]
+    },
+
+    // === NEW EXPANDED DIALOGUES ===
+
+    // Apartment — mirror interaction
+    apartmentMirror: {
+        lines: [
+            { text: "*Зеркало в ванной. Покрыто трещинами.*", speaker: 'narrator' },
+            { text: "*Моё отражение... оно не двигается вместе со мной.*", speaker: 'mila' },
+            { text: "*Оно смотрит. Оно знает.*", speaker: 'mila' }
+        ]
+    },
+
+    // Apartment — window interaction
+    apartmentWindow: {
+        lines: [
+            { text: "*За окном — дождь. Бесконечный, чёрный дождь.*", speaker: 'narrator' },
+            { text: "*Когда-то я любила дождь. Мы с бабушкой слушали его вместе.*", speaker: 'mila' },
+            { text: "*Теперь он звучит как... плач.*", speaker: 'mila' }
+        ]
+    },
+
+    // Apartment — radio
+    apartmentRadio: {
+        lines: [
+            { text: "*Радио. Сквозь шум — обрывки слов.*", speaker: 'narrator' },
+            { text: "*\"...состояние стабильное... мозговая активность...\"*", speaker: 'radio' },
+            { text: "*Это обо мне? Кто-то говорит обо мне... в реальности?*", speaker: 'mila' }
+        ]
+    },
+
+    // Apartment — clock
+    apartmentClock: {
+        lines: [
+            { text: "*Часы на стене. Стрелки идут в обратную сторону.*", speaker: 'narrator' },
+            { text: "*Время здесь не имеет значения. Или наоборот — только оно и имеет.*", speaker: 'mila' }
+        ]
+    },
+
+    // School — locker interaction
+    schoolLocker: {
+        lines: [
+            { text: "*Шкафчик. На дверце нацарапано: \"Мила = 0\"*", speaker: 'narrator' },
+            { text: "*Я помню, кто написал это. Я помню каждый день.*", speaker: 'mila' }
+        ]
+    },
+
+    // School — blackboard
+    schoolBlackboard: {
+        lines: [
+            { text: "*На доске написано мелом, снова и снова:*", speaker: 'narrator' },
+            { text: "*\"Я ЗДЕСЬ Я ЗДЕСЬ Я ЗДЕСЬ Я ЗДЕСЬ Я ЗДЕСЬ\"*", speaker: 'narrator' },
+            { text: "*Мой почерк. Моя мольба, которую никто не слышал.*", speaker: 'mila' }
+        ]
+    },
+
+    // School — phone ringing
+    schoolPhone: {
+        lines: [
+            { text: "*Телефон в учительской звонит. Никто не берёт.*", speaker: 'narrator' },
+            { text: "*Как тот звонок маме, который я так и не сделала.*", speaker: 'mila' }
+        ]
+    },
+
+    // Garden — bench interaction
+    gardenBench: {
+        lines: [
+            { text: "*Скамейка. Старая, покосившаяся.*", speaker: 'narrator' },
+            { text: "*Мы сидели здесь с бабушкой. Она вязала, я рисовала.*", speaker: 'mila' },
+            { text: "*\"Ты талантливая, Милочка. Не слушай других.\"*", speaker: 'mila' },
+            { text: "*Я перестала рисовать после её смерти.*", speaker: 'mila' }
+        ]
+    },
+
+    // Garden — pond
+    gardenPond: {
+        lines: [
+            { text: "*Маленький пруд. Вода чёрная, непрозрачная.*", speaker: 'narrator' },
+            { text: "*В воде отражается не моё лицо. Или... моё, но другое.*", speaker: 'mila' },
+            { text: "*Моложе. Счастливее. Та, кем я могла бы быть.*", speaker: 'mila' }
+        ]
+    },
+
+    // Hospital — IV drip
+    hospitalIV: {
+        lines: [
+            { text: "*Капельница. Жидкость течёт вверх, против гравитации.*", speaker: 'narrator' },
+            { text: "*В реальности — она течёт в мои вены. Поддерживает жизнь.*", speaker: 'mila' },
+            { text: "*Жизнь, которую я пыталась прервать.*", speaker: 'mila' }
+        ]
+    },
+
+    // Hospital — medical records
+    hospitalRecords: {
+        lines: [
+            { text: "*Папка с документами. Мой диагноз.*", speaker: 'narrator' },
+            { text: "*\"Тяжёлый депрессивный эпизод. Суицидальная попытка.\"*", speaker: 'narrator' },
+            { text: "*\"Перелом позвоночника. Черепно-мозговая травма.\"*", speaker: 'narrator' },
+            { text: "*\"Прогноз: неопределённый.\"*", speaker: 'narrator' },
+            { text: "*Я прыгнула с крыши. И выжила. Почему?*", speaker: 'mila' }
+        ]
+    },
+
+    // Corridor — window (new object)
+    corridorWindow: {
+        lines: [
+            { text: "*Окно в стене коридора. За ним — белая пустота.*", speaker: 'narrator' },
+            { text: "*Иногда мне кажется, что я вижу там лица.*", speaker: 'mila' },
+            { text: "*Врачи? Медсёстры? Мама?*", speaker: 'mila' }
+        ]
+    },
+
+    // Corridor — crack in wall
+    corridorCrack: {
+        lines: [
+            { text: "*Трещина в стене. Через неё слышен шёпот.*", speaker: 'narrator' },
+            { text: "*\"...давление стабильное... зрачки реагируют...\"*", speaker: 'narrator' },
+            { text: "*Реальность просачивается сюда. Мир снаружи — ждёт.*", speaker: 'mila' }
+        ]
+    },
+
+    // Doctor — more talks
+    doctorTalk2: {
+        lines: [
+            { text: "Ты возвращаешься. Это хорошо.", speaker: 'doctor' },
+            { text: "Каждая дверь — это часть тебя. Часть, которую ты потеряла.", speaker: 'doctor' },
+            { text: "Или спрятала.", speaker: 'doctor' },
+            { text: "*Его голос... он как эхо моих собственных мыслей.*", speaker: 'mila' }
+        ]
+    },
+    doctorTalk3: {
+        lines: [
+            { text: "Ты знаешь, почему Тень преследует тебя?", speaker: 'doctor' },
+            { text: "*...*", speaker: 'mila' },
+            { text: "Потому что ты бежишь от себя. А от себя не убежать.", speaker: 'doctor' },
+            { text: "Можно только принять. Или сломаться.", speaker: 'doctor' }
+        ]
+    },
+    doctorTalk4: {
+        lines: [
+            { text: "В реальности прошло одиннадцать дней.", speaker: 'doctor' },
+            { text: "*Одиннадцать?.. Мне казалось — вечность.*", speaker: 'mila' },
+            { text: "Время здесь... гибкое. Как и память.", speaker: 'doctor' },
+            { text: "Твоя мать не уходит из палаты. Ни на минуту.", speaker: 'doctor' }
+        ]
+    },
+
+    // Shadow — additional whispers during chase
+    shadowWhisper1: {
+        lines: [
+            { text: "*...никто тебя не любит...*", speaker: 'shadow' }
+        ]
+    },
+    shadowWhisper2: {
+        lines: [
+            { text: "*...ты сама виновата...*", speaker: 'shadow' }
+        ]
+    },
+    shadowWhisper3: {
+        lines: [
+            { text: "*...мир без тебя не изменится...*", speaker: 'shadow' }
+        ]
+    },
+    shadowWhisper4: {
+        lines: [
+            { text: "*...даже мама устала от тебя...*", speaker: 'shadow' }
+        ]
+    },
+
+    // Mother — expanded dialogues
+    motherTalk2: {
+        lines: [
+            { text: "*Она поворачивается. Лицо... размыто, но я вижу слёзы.*", speaker: 'narrator' },
+            { text: "Милочка, прости меня.", speaker: 'mother' },
+            { text: "Я не должна была уезжать. Не должна была оставлять тебя.", speaker: 'mother' },
+            { text: "*Мам...*", speaker: 'mila' },
+            { text: "Я думала — работа, деньги, лучшая жизнь для тебя...", speaker: 'mother' },
+            { text: "А ты просто хотела, чтобы я была рядом.", speaker: 'mother' }
+        ]
+    },
+
+    // Void — shadow additional lines before choice
+    shadowPhilosophy: {
+        lines: [
+            { text: "Ты думаешь, принять — значит простить?", speaker: 'shadow' },
+            { text: "Простить тех, кто издевался? Мать, которая бросила?", speaker: 'shadow' },
+            { text: "*Нет. Принять — значит перестать ненавидеть себя за то, что я чувствовала.*", speaker: 'mila' },
+            { text: "...Интересно.", speaker: 'shadow' }
+        ]
+    },
+
+    // White room — deeper decay dialogues
+    whiteRoomDecay3: {
+        lines: [
+            { text: "*Стены трескаются. Сквозь трещины — темнота.*", speaker: 'narrator' },
+            { text: "*И голоса. Реальные голоса.*", speaker: 'mila' },
+            { text: "*\"...мозговая активность возросла... она борется...\"*", speaker: 'narrator' }
+        ]
+    },
+    whiteRoomDecay5: {
+        lines: [
+            { text: "*Белая комната почти разрушена. Пол проваливается.*", speaker: 'narrator' },
+            { text: "*Я вижу... больничный потолок? Лампу?*", speaker: 'mila' },
+            { text: "*Почти... почти могу открыть глаза...*", speaker: 'mila' }
+        ]
+    },
+
     // Generic interactions
     examine: {
         lines: [

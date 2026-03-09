@@ -59,6 +59,24 @@ class Shadow extends Entity {
         // === FACE FLASH ===
         this.faceFlashTimer = 0;
         this.faceFlashActive = false;
+
+        // === WATCHING MODE (sometimes just observes) ===
+        this.watchMode = false;
+        this.watchTimer = 0;
+        this.watchDuration = 0;
+
+        // === SPEAKING (says things during chase) ===
+        this.speakTimer = 0;
+        this.speakCooldown = 8;
+
+        // === VISUAL FORM (changes based on rejected memories) ===
+        this.formLevel = 0; // 0=shadow, increases with rejections -> more human
+
+        // Frame-based timers (replaces setTimeout)
+        this._teleportRevealTimer = 0;
+        this._reactivateTimer = 0;
+        this._reactivateGame = null;
+        this._faceFlashDuration = 0;
     }
 
     activate(x, y) {
@@ -71,6 +89,7 @@ class Shadow extends Entity {
         this.chaseStarted = true;
         this.trail = [];
         this.corruptionTrail = [];
+        this._corruptionKeys = new Set();
         this.hallucinations = [];
         this.ambushMode = false;
         this.teleportCooldown = 0;
@@ -83,15 +102,38 @@ class Shadow extends Entity {
         this.visible = false;
         this.chaseStarted = false;
         this.trail = [];
-        // Corruption and hallucinations linger after shadow leaves
         this.ambushMode = false;
         this.jumpscareActive = false;
         this.faceFlashActive = false;
+        this._teleportRevealTimer = 0;
+        this._faceFlashDuration = 0;
+        // Don't clear _reactivateTimer — it should still fire
     }
 
     update(dt, game) {
         // Update hallucinations even when not active (they linger)
         this.updateHallucinations(dt, game);
+
+        // Frame-based reactivation timer (replaces setTimeout)
+        if (this._reactivateTimer > 0) {
+            this._reactivateTimer -= dt;
+            if (this._reactivateTimer <= 0) {
+                this._reactivateTimer = 0;
+                const g = this._reactivateGame || game;
+                if (g.currentRoom && g.currentRoom.name !== 'whiteRoom' &&
+                    g.currentRoom.name !== 'void' && g.currentRoom.name !== 'corridor') {
+                    const room = g.currentRoom;
+                    const behindX = g.player.direction === 'left' ? Math.min(room.width - 2, g.player.tileX + 4)
+                        : g.player.direction === 'right' ? Math.max(1, g.player.tileX - 4)
+                        : Math.random() < 0.5 ? 1 : room.width - 2;
+                    const behindY = g.player.direction === 'up' ? Math.min(room.height - 2, g.player.tileY + 4)
+                        : g.player.direction === 'down' ? Math.max(1, g.player.tileY - 4)
+                        : Math.random() < 0.5 ? 1 : room.height - 2;
+                    this.activate(behindX, behindY);
+                }
+                this._reactivateGame = null;
+            }
+        }
 
         // Update jumpscare
         if (this.jumpscareActive) {
@@ -104,6 +146,59 @@ class Shadow extends Entity {
         this.glitchTimer += dt;
         this.whisperTimer += dt;
         this.teleportCooldown -= dt;
+
+        // Frame-based teleport reveal
+        if (this._teleportRevealTimer > 0) {
+            this._teleportRevealTimer -= dt;
+            if (this._teleportRevealTimer <= 0) {
+                this.visible = true;
+                if (game.currentRoom) {
+                    ParticlePresets.glitchBurst(game.currentRoom.particles, this.drawX + 8, this.drawY + 12);
+                }
+            }
+        }
+
+        // Update form level based on rejected memories
+        if (game.state && game.state.flags) {
+            const f = game.state.flags;
+            this.formLevel = 0;
+            if (f.memoryApartment === false) this.formLevel++;
+            if (f.memorySchool === false) this.formLevel++;
+            if (f.memoryGarden === false) this.formLevel++;
+            if (f.memoryHospital === false) this.formLevel++;
+            if (f.memoryVoid === false) this.formLevel++;
+        }
+
+        // === WATCHING MODE — sometimes stops and just stares ===
+        if (this.watchMode) {
+            this.watchTimer += dt;
+            if (this.watchTimer >= this.watchDuration) {
+                this.watchMode = false;
+            }
+            // Still update proximity effects while watching
+            this.updateProximityEffects(dt, game);
+            return; // don't move while watching
+        }
+        // Chance to enter watch mode
+        if (game.player && !this.moving && Math.random() < 0.003) {
+            const dist = this.distanceTo(game.player);
+            if (dist >= 3 && dist <= 7) {
+                this.watchMode = true;
+                this.watchTimer = 0;
+                this.watchDuration = 2 + Math.random() * 4;
+            }
+        }
+
+        // === SPEAKING during chase ===
+        this.speakTimer += dt;
+        if (this.speakTimer >= this.speakCooldown && game.player) {
+            const dist = this.distanceTo(game.player);
+            if (dist < 6 && dist > 1) {
+                this.speakTimer = 0;
+                this.speakCooldown = 6 + Math.random() * 8;
+                this.speakToPlayer(game);
+            }
+        }
 
         // === FEAR LEVEL CALCULATION ===
         if (game.player) {
@@ -173,31 +268,36 @@ class Shadow extends Entity {
         // Leave corruption on tiles we pass through
         if (!this.moving && this.active) {
             const key = this.tileX + ',' + this.tileY;
-            if (!this.corruptionTrail.some(c => c.key === key)) {
+            if (!this._corruptionKeys) this._corruptionKeys = new Set();
+            if (!this._corruptionKeys.has(key)) {
+                this._corruptionKeys.add(key);
                 this.corruptionTrail.push({
                     key, x: this.tileX, y: this.tileY,
-                    life: 15, maxLife: 15 // corruption lasts 15 seconds
+                    life: 15, maxLife: 15
                 });
                 if (this.corruptionTrail.length > this.corruptionMax) {
-                    this.corruptionTrail.shift();
+                    const removed = this.corruptionTrail.shift();
+                    this._corruptionKeys.delete(removed.key);
                 }
             }
         }
 
-        // Decay corruption
-        for (let i = this.corruptionTrail.length - 1; i >= 0; i--) {
+        // Decay corruption (swap-remove)
+        let cLen = this.corruptionTrail.length;
+        for (let i = cLen - 1; i >= 0; i--) {
             this.corruptionTrail[i].life -= dt;
             if (this.corruptionTrail[i].life <= 0) {
-                this.corruptionTrail.splice(i, 1);
+                if (this._corruptionKeys) this._corruptionKeys.delete(this.corruptionTrail[i].key);
+                this.corruptionTrail[i] = this.corruptionTrail[cLen - 1];
+                cLen--;
             }
         }
+        this.corruptionTrail.length = cLen;
 
-        // === PLAYER ON CORRUPTION — slowdown + distortion ===
+        // === PLAYER ON CORRUPTION — O(1) lookup ===
         if (game.player) {
-            const onCorruption = this.corruptionTrail.some(
-                c => c.x === game.player.tileX && c.y === game.player.tileY
-            );
-            game.player.corruptionSlow = onCorruption;
+            const playerKey = game.player.tileX + ',' + game.player.tileY;
+            game.player.corruptionSlow = this._corruptionKeys ? this._corruptionKeys.has(playerKey) : false;
         }
 
         // Fade trail
@@ -217,18 +317,75 @@ class Shadow extends Entity {
         }
 
         // === FACE FLASH — brief subliminal shadow face ===
+        if (this.faceFlashActive) {
+            this._faceFlashDuration -= dt;
+            if (this._faceFlashDuration <= 0) this.faceFlashActive = false;
+        }
         this.faceFlashTimer -= dt;
         if (this.fearLevel > 0.5 && this.faceFlashTimer <= 0 && Math.random() < 0.005) {
             this.faceFlashActive = true;
+            this._faceFlashDuration = 0.12; // 120ms subliminal flash (frame-based)
             this.faceFlashTimer = 8 + Math.random() * 12;
-            setTimeout(() => { this.faceFlashActive = false; }, 120); // 120ms subliminal flash
         }
+    }
+
+    speakToPlayer(game) {
+        const phrases = [
+            { text: '...тебе не станет лучше...', speaker: 'shadow' },
+            { text: '...зачем ты сопротивляешься?...', speaker: 'shadow' },
+            { text: '...ты знаешь, что я права...', speaker: 'shadow' },
+            { text: '...устала? Остановись...', speaker: 'shadow' },
+            { text: '...никто не заметит...', speaker: 'shadow' },
+            { text: '...ты всегда была одна...', speaker: 'shadow' },
+        ];
+        // More personal phrases if memories rejected
+        if (this.formLevel >= 2) {
+            phrases.push(
+                { text: '...ты отдаёшь мне всё больше...', speaker: 'shadow' },
+                { text: '...скоро я стану тобой...', speaker: 'shadow' },
+                { text: '...спасибо, что забываешь...', speaker: 'shadow' }
+            );
+        }
+        if (this.formLevel >= 4) {
+            phrases.push(
+                { text: '...посмотри на меня. Узнаёшь?...', speaker: 'shadow' },
+                { text: '...мы почти одинаковые теперь...', speaker: 'shadow' }
+            );
+        }
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        game.dialogue.show({ lines: [phrase] }, game);
     }
 
     chaseMove(game) {
         const player = game.player;
-        const dx = player.tileX - this.tileX;
-        const dy = player.tileY - this.tileY;
+
+        // Stealth integration: check if player is hidden
+        let target = { x: player.tileX, y: player.tileY };
+        if (game.stealth) {
+            const stealthTarget = game.stealth.getShadowTarget(this, player);
+            if (stealthTarget === null) {
+                // Lost player — wander randomly
+                const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                const pick = dirs[Math.floor(Math.random() * dirs.length)];
+                const nx = this.tileX + pick.x;
+                const ny = this.tileY + pick.y;
+                if (game.currentRoom && game.currentRoom.tilemap && !game.currentRoom.tilemap.isSolid(nx, ny)) {
+                    this.trail.push({ x: this.drawX, y: this.drawY, alpha: 1 });
+                    if (this.trail.length > this.trailMax) this.trail.shift();
+                    this.startDrawX = this.drawX;
+                    this.startDrawY = this.drawY;
+                    this.tileX = nx;
+                    this.tileY = ny;
+                    this.moving = true;
+                    this.moveLerp = 0;
+                }
+                return;
+            }
+            target = stealthTarget;
+        }
+
+        const dx = target.x - this.tileX;
+        const dy = target.y - this.tileY;
 
         // Sometimes take suboptimal paths to seem more unpredictable
         let moveX = 0, moveY = 0;
@@ -262,6 +419,12 @@ class Shadow extends Entity {
         }
 
         if (this.tileX === player.tileX && this.tileY === player.tileY) {
+            // Can't catch if player is hidden (breath hold near cover)
+            if (game.stealth && game.stealth.playerHidden) {
+                // Shadow passes through — evasion!
+                if (game.meta) game.meta.onShadowEvade();
+                return;
+            }
             this.onCatchPlayer(game);
         }
     }
@@ -294,19 +457,13 @@ class Shadow extends Entity {
             }
             game.audio.playGlitch();
 
-            // Briefly invisible, then appear
+            // Briefly invisible, then appear (frame-based)
             this.visible = false;
             this.tileX = pick.x;
             this.tileY = pick.y;
             this.drawX = pick.x * CONFIG.TILE_SIZE;
             this.drawY = pick.y * CONFIG.TILE_SIZE;
-
-            setTimeout(() => {
-                this.visible = true;
-                if (game.currentRoom) {
-                    ParticlePresets.glitchBurst(game.currentRoom.particles, this.drawX + 8, this.drawY + 12);
-                }
-            }, 300);
+            this._teleportRevealTimer = 0.3;
         }
     }
 
@@ -360,6 +517,16 @@ class Shadow extends Entity {
         if (dist < 5 && this.whisperTimer > (dist < 3 ? 2 : 4)) {
             this.whisperTimer = 0;
             game.audio.playShadowWhisper();
+            // Show shadow whisper text occasionally
+            if (Math.random() < 0.3 && !game.dialogue.active) {
+                const whispers = [
+                    DIALOGUES.shadowWhisper1, DIALOGUES.shadowWhisper2,
+                    DIALOGUES.shadowWhisper3, DIALOGUES.shadowWhisper4,
+                    DIALOGUES.shadowWhisperText
+                ];
+                const w = whispers[Math.floor(Math.random() * whispers.length)];
+                if (w) game.dialogue.show(w, game);
+            }
         }
 
         // === CAMERA DRIFT when very close ===
@@ -438,6 +605,9 @@ class Shadow extends Entity {
     onCatchPlayer(game) {
         this.catchCount++;
         game.state.incrementFlag('shadowEncounters');
+        if (game.player) game.player.noCatchRun = false;
+        if (game.sanity) game.sanity.onShadowCatch();
+        if (game.meta) game.meta.onShadowCatch();
 
         // Start jumpscare sequence
         this.jumpscareActive = true;
@@ -532,22 +702,9 @@ class Shadow extends Entity {
 
             this.deactivate();
 
-            // Reactivate faster each time
-            const reactivateDelay = Math.max(5000, 10000 - this.catchCount * 1500);
-            setTimeout(() => {
-                if (game.currentRoom && game.currentRoom.name !== 'whiteRoom' &&
-                    game.currentRoom.name !== 'void' && game.currentRoom.name !== 'corridor') {
-                    const room = game.currentRoom;
-                    // Spawn behind player (scarier)
-                    const behindX = game.player.direction === 'left' ? Math.min(room.width - 2, game.player.tileX + 4)
-                        : game.player.direction === 'right' ? Math.max(1, game.player.tileX - 4)
-                        : Math.random() < 0.5 ? 1 : room.width - 2;
-                    const behindY = game.player.direction === 'up' ? Math.min(room.height - 2, game.player.tileY + 4)
-                        : game.player.direction === 'down' ? Math.max(1, game.player.tileY - 4)
-                        : Math.random() < 0.5 ? 1 : room.height - 2;
-                    this.activate(behindX, behindY);
-                }
-            }, reactivateDelay);
+            // Reactivate faster each time (frame-based timer)
+            this._reactivateTimer = Math.max(5, 10 - this.catchCount * 1.5);
+            this._reactivateGame = game;
         }
     }
 
@@ -608,6 +765,27 @@ class Shadow extends Entity {
             this.drawY + this.spriteOffsetY + oy,
             camera
         );
+
+        // Form level visual — more human features as memories are rejected
+        if (this.formLevel >= 2) {
+            const ctx = renderer.ictx;
+            const px = Math.round(this.drawX + ox + camera.offsetX);
+            const py = Math.round(this.drawY + this.spriteOffsetY + oy + camera.offsetY);
+            // Add skin-colored patches (becoming more human)
+            ctx.globalAlpha = Math.min(0.5, this.formLevel * 0.12);
+            ctx.fillStyle = '#d5ceb3'; // skin tone
+            ctx.fillRect(px + 5, py + 2, 6, 5); // face area
+            if (this.formLevel >= 4) {
+                // Hair hints
+                ctx.fillStyle = '#4a3728';
+                ctx.fillRect(px + 5, py, 6, 3);
+                // More defined eyes
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(px + 6, py + 3, 2, 1);
+                ctx.fillRect(px + 9, py + 3, 2, 1);
+            }
+            ctx.globalAlpha = 1;
+        }
 
         // Red/blue split afterimage — more frequent when close
         const splitChance = 0.15 + this.fearLevel * 0.35;

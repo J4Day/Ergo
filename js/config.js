@@ -21,6 +21,7 @@ const CONFIG = {
     ENDINGS: {
         AWAKENING: 'A',
         OBLIVION: 'B',
-        LOOP: 'C'
+        LOOP: 'C',
+        FORGIVENESS: 'D'
     }
 };

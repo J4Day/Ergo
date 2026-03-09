@@ -572,4 +572,409 @@ class SoundGen {
     playLullaby() {
         this.playOST_Lullaby(this.ctx.destination);
     }
+
+    // === SOUND PUZZLE ===
+
+    // Play a tone from a pentatonic scale (0-4), correct = warm, incorrect = harsh
+    playSoundPuzzleTone(noteIndex, correct) {
+        const now = this.ctx.currentTime;
+        // Pentatonic scale: C D E G A
+        const scale = [262, 294, 330, 392, 440];
+        const freq = scale[noteIndex % scale.length];
+
+        if (correct) {
+            // Warm bell-like tone
+            const osc = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc2.type = 'sine';
+            osc2.frequency.value = freq * 2; // octave harmonic
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc2.start(now);
+            osc.stop(now + 1.3);
+            osc2.stop(now + 1.3);
+        } else {
+            // Dissonant buzz
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq * 0.97; // slightly off
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.45);
+        }
+    }
+
+    // Directional guide: play a tone that hints which direction to go
+    // direction: 'warm' (getting closer), 'cold' (getting farther), 'hot' (very close)
+    playSoundPuzzleGuide(direction) {
+        const now = this.ctx.currentTime;
+
+        if (direction === 'hot') {
+            // Rapid ascending chime
+            [523, 659, 784].forEach((f, i) => {
+                this.playNote(f, now + i * 0.1, 0.3, 'sine', 0.05);
+            });
+        } else if (direction === 'warm') {
+            // Gentle rising tone
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(330, now);
+            osc.frequency.linearRampToValueAtTime(440, now + 0.3);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.04, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.55);
+        } else {
+            // Low descending tone
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.04, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.55);
+        }
+    }
+
+    // Puzzle solved fanfare
+    playSoundPuzzleComplete() {
+        const now = this.ctx.currentTime;
+        const notes = [262, 330, 392, 523, 659, 784];
+        notes.forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = f;
+            const t = now + i * 0.12;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.06, t + 0.02);
+            gain.gain.setValueAtTime(0.06, t + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.65);
+        });
+    }
+
+    // === AMBIENT SOUNDS ===
+
+    // Whisper conversation — filtered noise modulated to sound speech-like
+    playWhisper(variant) {
+        const now = this.ctx.currentTime;
+        const duration = 1.5 + Math.random() * 1.5;
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        // Simulate speech-like amplitude modulation
+        const syllableRate = 3 + Math.random() * 4; // syllables per second
+        for (let i = 0; i < bufferSize; i++) {
+            const t = i / this.ctx.sampleRate;
+            const syllable = Math.sin(t * syllableRate * Math.PI * 2) * 0.5 + 0.5;
+            const breath = Math.sin(t * 0.7) * 0.3 + 0.7;
+            const envelope = Math.sin(t / duration * Math.PI); // fade in/out
+            data[i] = (Math.random() * 2 - 1) * 0.06 * syllable * breath * envelope;
+        }
+
+        const source = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        const filter2 = this.ctx.createBiquadFilter();
+        source.buffer = buffer;
+
+        // Bandpass to make it speech-like
+        filter.type = 'bandpass';
+        filter.frequency.value = 800 + (variant || 0) * 400;
+        filter.Q.value = 4;
+        filter2.type = 'bandpass';
+        filter2.frequency.value = 2200 + (variant || 0) * 300;
+        filter2.Q.value = 2;
+
+        gain.gain.value = 0.04;
+        source.connect(filter);
+        source.connect(filter2);
+        filter.connect(gain);
+        filter2.connect(gain);
+        gain.connect(this.ctx.destination);
+        source.start(now);
+    }
+
+    // Water ambience — continuous dripping and flow
+    playWaterAmbient() {
+        const now = this.ctx.currentTime;
+        // Multiple random drips
+        for (let i = 0; i < 5; i++) {
+            const t = now + Math.random() * 3;
+            const freq = 800 + Math.random() * 1200;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.3, t + 0.15);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.03, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.25);
+        }
+        // Low rumble (water flow)
+        const bufSize = this.ctx.sampleRate * 3;
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+            d[i] = (Math.random() * 2 - 1) * 0.02 * Math.sin(i / bufSize * Math.PI);
+        }
+        const src = this.ctx.createBufferSource();
+        const g = this.ctx.createGain();
+        const f = this.ctx.createBiquadFilter();
+        src.buffer = buf;
+        f.type = 'lowpass';
+        f.frequency.value = 200;
+        g.gain.value = 0.05;
+        src.connect(f);
+        f.connect(g);
+        g.connect(this.ctx.destination);
+        src.start(now);
+    }
+
+    // Wind ambience
+    playWindAmbient() {
+        const now = this.ctx.currentTime;
+        const duration = 4;
+        const bufSize = Math.floor(this.ctx.sampleRate * duration);
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+            const t = i / this.ctx.sampleRate;
+            const gust = Math.sin(t * 0.5) * 0.5 + 0.5;
+            d[i] = (Math.random() * 2 - 1) * 0.03 * gust * Math.sin(t / duration * Math.PI);
+        }
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        src.buffer = buf;
+        filter.type = 'bandpass';
+        filter.frequency.value = 400;
+        filter.Q.value = 0.5;
+        gain.gain.value = 0.06;
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        src.start(now);
+    }
+
+    // Clock ticking
+    playClockTick() {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 1800;
+        gain.gain.setValueAtTime(0.03, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+    }
+
+    // Radio static with voice fragments
+    playRadioStatic(withVoice) {
+        const now = this.ctx.currentTime;
+        const duration = 2 + Math.random();
+        const bufSize = Math.floor(this.ctx.sampleRate * duration);
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+            const t = i / this.ctx.sampleRate;
+            let noise = (Math.random() * 2 - 1) * 0.08;
+            // Occasional "voice" — filtered tone bursts
+            if (withVoice && Math.sin(t * 7) > 0.7) {
+                noise += Math.sin(t * 300 + Math.sin(t * 5) * 100) * 0.04;
+            }
+            d[i] = noise * Math.sin(t / duration * Math.PI);
+        }
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        src.buffer = buf;
+        gain.gain.value = 0.07;
+        src.connect(gain);
+        gain.connect(this.ctx.destination);
+        src.start(now);
+    }
+
+    // Door creak (heavier, more atmospheric)
+    playDoorCreak() {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.6);
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(82, now);
+        osc2.frequency.linearRampToValueAtTime(122, now + 0.3);
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 300;
+        filter.Q.value = 8;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.05);
+        gain.gain.setValueAtTime(0.06, now + 0.4);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + 0.75);
+        osc2.stop(now + 0.75);
+    }
+
+    // Breathing sound (for cutscenes)
+    playBreathing() {
+        const now = this.ctx.currentTime;
+        const duration = 2.5;
+        const bufSize = Math.floor(this.ctx.sampleRate * duration);
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+            const t = i / this.ctx.sampleRate;
+            // Inhale-exhale cycle
+            const breathCycle = Math.sin(t * Math.PI / 1.2);
+            const isInhale = breathCycle > 0;
+            const intensity = Math.abs(breathCycle);
+            const freq = isInhale ? 0.015 : 0.02;
+            d[i] = (Math.random() * 2 - 1) * freq * intensity;
+        }
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        src.buffer = buf;
+        filter.type = 'bandpass';
+        filter.frequency.value = 600;
+        filter.Q.value = 1;
+        gain.gain.value = 0.12;
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        src.start(now);
+    }
+
+    // Crying sound (muffled, for hospital/mother scenes)
+    playCrying() {
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 4; i++) {
+            const t = now + i * 0.6;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(350 + Math.random() * 50, t);
+            osc.frequency.linearRampToValueAtTime(280, t + 0.3);
+            osc.frequency.linearRampToValueAtTime(320, t + 0.5);
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.04, t + 0.05);
+            gain.gain.linearRampToValueAtTime(0.02, t + 0.3);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.6);
+        }
+    }
+
+    // Monitor flatline
+    playFlatline() {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1000;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.1);
+        gain.gain.setValueAtTime(0.06, now + 2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 3.1);
+    }
+
+    // Cutscene transition whoosh
+    playCutsceneTransition() {
+        const now = this.ctx.currentTime;
+        const bufSize = Math.floor(this.ctx.sampleRate * 0.8);
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+            const t = i / bufSize;
+            d[i] = (Math.random() * 2 - 1) * (1 - t) * t * 4 * 0.15;
+        }
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        src.buffer = buf;
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(200, now);
+        filter.frequency.exponentialRampToValueAtTime(2000, now + 0.4);
+        filter.frequency.exponentialRampToValueAtTime(200, now + 0.8);
+        filter.Q.value = 1;
+        gain.gain.value = 0.1;
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        src.start(now);
+    }
+
+    // Wrong sequence error
+    playSoundPuzzleError() {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc2.type = 'sawtooth';
+        osc.frequency.value = 100;
+        osc2.frequency.value = 103; // beating
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + 0.65);
+        osc2.stop(now + 0.65);
+    }
 }

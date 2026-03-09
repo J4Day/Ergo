@@ -1,46 +1,85 @@
 class ParticleSystem {
     constructor() {
         this.particles = [];
+        this.maxParticles = 200; // hard limit
     }
 
     emit(x, y, count, config) {
-        for (let i = 0; i < count; i++) {
+        // Enforce hard limit — skip if at capacity
+        const available = this.maxParticles - this.particles.length;
+        if (available <= 0) return;
+        const actual = Math.min(count, available);
+
+        const spread = config.spread || 8;
+        const speed = config.speed || 1;
+        const life = config.life || 1;
+        const size = config.size || 1;
+        const gravity = config.gravity || 0;
+        const fadeOut = config.fadeOut !== false;
+        const colors = config.colors;
+
+        for (let i = 0; i < actual; i++) {
             this.particles.push({
-                x: x + (Math.random() - 0.5) * (config.spread || 8),
-                y: y + (Math.random() - 0.5) * (config.spread || 8),
-                vx: (Math.random() - 0.5) * (config.speed || 1),
-                vy: (config.gravity ? -Math.random() * (config.speed || 1) : (Math.random() - 0.5) * (config.speed || 1)),
-                life: config.life || 1,
-                maxLife: config.life || 1,
-                size: config.size || 1,
-                color: config.colors ? config.colors[Math.floor(Math.random() * config.colors.length)] : '#fff',
-                gravity: config.gravity || 0,
-                fadeOut: config.fadeOut !== false
+                x: x + (Math.random() - 0.5) * spread,
+                y: y + (Math.random() - 0.5) * spread,
+                vx: (Math.random() - 0.5) * speed,
+                vy: gravity ? -Math.random() * speed : (Math.random() - 0.5) * speed,
+                life: life,
+                maxLife: life,
+                size: size,
+                color: colors ? colors[Math.floor(Math.random() * colors.length)] : '#fff',
+                gravity: gravity,
+                fadeOut: fadeOut
             });
         }
     }
 
     update(dt) {
-        for (let i = this.particles.length - 1; i >= 0; i--) {
+        // Iterate backward, swap-remove dead particles (avoids splice O(n) per removal)
+        let len = this.particles.length;
+        for (let i = len - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.x += p.vx;
             p.y += p.vy;
             p.vy += p.gravity * dt;
             p.life -= dt;
             if (p.life <= 0) {
-                this.particles.splice(i, 1);
+                // Swap with last element and pop (O(1) removal)
+                this.particles[i] = this.particles[len - 1];
+                len--;
             }
         }
+        this.particles.length = len;
     }
 
     draw(ctx, camera) {
-        for (const p of this.particles) {
+        const particles = this.particles;
+        const len = particles.length;
+        if (len === 0) return;
+
+        const ox = camera.offsetX;
+        const oy = camera.offsetY;
+
+        // Batch by color to minimize fillStyle changes
+        let lastColor = '';
+        let lastAlpha = -1;
+
+        for (let i = 0; i < len; i++) {
+            const p = particles[i];
             const alpha = p.fadeOut ? Math.max(0, p.life / p.maxLife) : 1;
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = p.color;
+
+            if (alpha !== lastAlpha) {
+                ctx.globalAlpha = alpha;
+                lastAlpha = alpha;
+            }
+            if (p.color !== lastColor) {
+                ctx.fillStyle = p.color;
+                lastColor = p.color;
+            }
+
             ctx.fillRect(
-                Math.round(p.x + camera.offsetX),
-                Math.round(p.y + camera.offsetY),
+                Math.round(p.x + ox),
+                Math.round(p.y + oy),
                 p.size, p.size
             );
         }
@@ -48,7 +87,7 @@ class ParticleSystem {
     }
 
     clear() {
-        this.particles = [];
+        this.particles.length = 0;
     }
 }
 
